@@ -1,0 +1,62 @@
+name: Build Paduka Kernel
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          ref: a14/flop-renewed-final
+          fetch-depth: 1
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y bc bison flex libssl-dev libelf-dev \
+            libncurses5-dev python3 build-essential zip \
+            clang lld llvm llvm-dev
+
+      - name: Set build variables
+        run: |
+          echo "ARCH=arm64" >> $GITHUB_ENV
+          echo "SUBARCH=arm64" >> $GITHUB_ENV
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "LLVM=1" >> $GITHUB_ENV
+          echo "LLVM_IAS=1" >> $GITHUB_ENV
+          echo "KBUILD_BUILD_USER=Rozialvaro_" >> $GITHUB_ENV
+          echo "KBUILD_BUILD_HOST=PadukaKernel" >> $GITHUB_ENV
+
+      - name: Load defconfig
+        run: |
+          make O=out \
+            ARCH=arm64 \
+            CC=clang \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            ginkgo_defconfig
+
+      - name: Build kernel
+        run: |
+          make -j$(nproc) O=out \
+            ARCH=arm64 \
+            CC=clang \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            KBUILD_BUILD_USER=Rozialvaro_ \
+            KBUILD_BUILD_HOST=PadukaKernel \
+            Image.gz-dtb dtbo.img
+
+      - name: Upload Image.gz-dtb
+        uses: actions/upload-artifact@v4
+        with:
+          name: Paduka-Kernel-ginkgo
+          path: |
+            out/arch/arm64/boot/Image.gz-dtb
+            out/arch/arm64/boot/dtbo.img
+          retention-days: 7
