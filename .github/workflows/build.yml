@@ -22,6 +22,13 @@ jobs:
             libncurses5-dev python3 build-essential zip \
             clang lld llvm llvm-dev
 
+      - name: Find defconfig
+        run: |
+          echo "=== Available defconfigs ==="
+          find arch/arm64/configs/ -name "*ginkgo*" -o -name "*trinket*" \
+            -o -name "*floppy*" -o -name "*willow*" 2>/dev/null
+          ls arch/arm64/configs/ | head -30
+
       - name: Set build variables
         run: |
           echo "ARCH=arm64" >> $GITHUB_ENV
@@ -34,12 +41,12 @@ jobs:
 
       - name: Load defconfig
         run: |
-          make O=out \
-            ARCH=arm64 \
-            CC=clang \
-            LLVM=1 \
-            LLVM_IAS=1 \
-            ginkgo_defconfig
+          DEFCONFIG=$(find arch/arm64/configs/ -name "*ginkgo*" \
+            -o -name "*trinket*" -o -name "*floppy*" \
+            -o -name "*willow*" 2>/dev/null | head -1 | xargs basename)
+          echo "Using defconfig: $DEFCONFIG"
+          echo "DEFCONFIG=$DEFCONFIG" >> $GITHUB_ENV
+          make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 $DEFCONFIG
 
       - name: Build kernel
         run: |
@@ -52,7 +59,7 @@ jobs:
             KBUILD_BUILD_HOST=PadukaKernel \
             Image.gz-dtb dtbo.img
 
-      - name: Upload Image.gz-dtb
+      - name: Upload hasil build
         uses: actions/upload-artifact@v4
         with:
           name: Paduka-Kernel-ginkgo
