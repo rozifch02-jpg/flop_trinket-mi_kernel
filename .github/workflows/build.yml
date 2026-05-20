@@ -22,24 +22,14 @@ jobs:
             libncurses5-dev python3 build-essential zip \
             clang lld llvm llvm-dev
 
-      - name: Set build variables
-        run: |
-          echo "ARCH=arm64" >> $GITHUB_ENV
-          echo "SUBARCH=arm64" >> $GITHUB_ENV
-          echo "KBUILD_BUILD_USER=Rozialvaro_" >> $GITHUB_ENV
-          echo "KBUILD_BUILD_HOST=PadukaKernel" >> $GITHUB_ENV
-
-      - name: Load defconfig
+      - name: Load and fix defconfig
         run: |
           DEFCONFIG=$(find arch/arm64/configs/ -name "*ginkgo*" \
             -o -name "*trinket*" -o -name "*floppy*" \
             -o -name "*willow*" 2>/dev/null | head -1 | xargs basename)
           echo "Using defconfig: $DEFCONFIG"
           make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 $DEFCONFIG
-
-      - name: Update config (handle new options)
-        run: |
-          make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 olddefconfig
+          yes "" | make O=out ARCH=arm64 CC=clang LLVM=1 LLVM_IAS=1 oldconfig
 
       - name: Build kernel
         run: |
